@@ -11,7 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { PRODUCT_SERVICE } from 'config';
+import { NATS_SERVICE, PRODUCT_SERVICE } from 'config';
 import { catchError, firstValueFrom } from 'rxjs';
 import { PaginationDto } from 'src/common';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -20,13 +20,14 @@ import { UpdateProductDto } from './dto/update-product.dto';
 @Controller('products')
 export class ProductsController {
   constructor(
-    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
+    /// Se cambia lo de products que teníamos aca, ahora es un cliente de nats y no solo accede a products
+    @Inject(NATS_SERVICE) private readonly client: ClientProxy,
   ) {}
 
-  /// Implementación
   @Post()
   createProduct(@Body() createProductDto: CreateProductDto) {
-    return this.productsClient.send(
+    return this.client.send(
+      //- para nats es mala practica estables esto como un objeto { cmd: 'create_product' }
       { cmd: 'create_product' },
       createProductDto,
     );
@@ -34,14 +35,14 @@ export class ProductsController {
 
   @Get()
   findAllProducts(@Query() paginationDto: PaginationDto) {
-    return this.productsClient.send({ cmd: 'find_all_product' }, paginationDto);
+    return this.client.send({ cmd: 'find_all_product' }, paginationDto);
   }
 
   @Get(':id')
   async findOneProduct(@Param('id') productId: string) {
     try {
       const product = await firstValueFrom(
-        this.productsClient.send(
+        this.client.send(
           { cmd: 'find_one_product' },
           { id: productId },
         ),
@@ -60,7 +61,7 @@ export class ProductsController {
   ) {
     try {
       return await firstValueFrom(
-        this.productsClient.send(
+        this.client.send(
           { cmd: 'update_product' },
           { id, ...updateProductDto },
         ),
@@ -73,7 +74,7 @@ export class ProductsController {
   /// Implementación, con el método que no es como las promesas
   @Delete(':id')
   async removeProduct(@Param('id', ParseIntPipe) id: number) {
-    return this.productsClient.send({ cmd: 'delete_product' }, { id }).pipe(
+    return this.client.send({ cmd: 'delete_product' }, { id }).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
