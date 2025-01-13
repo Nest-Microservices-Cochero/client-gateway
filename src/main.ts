@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { RpcCustomExceptionFilter } from './common/exceptions/rpc-custom-exception.filter';
+import { envs } from 'config';
 
 async function bootstrap() {
   const logger = new Logger('Main-Gateway');
@@ -20,10 +21,12 @@ async function bootstrap() {
   /// Agregarlo
   app.useGlobalFilters(new RpcCustomExceptionFilter());
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(envs.port ?? 3000);
 
   logger.log(
-    `Microservicio Gateway corriendo en el puerto ${process.env.PORT ?? 3000}`,
+    `Microservicios Gateway corriendo en el puerto ${envs.port ?? 3000}`,
   );
+
+  console.log('Hola Mundo Primer commit')
 }
 bootstrap();
