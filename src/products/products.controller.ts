@@ -9,13 +9,15 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { NATS_SERVICE, PRODUCT_SERVICE } from 'config';
+import { NATS_SERVICE } from 'config';
 import { catchError, firstValueFrom } from 'rxjs';
 import { PaginationDto } from 'src/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('products')
 export class ProductsController {
@@ -33,6 +35,8 @@ export class ProductsController {
     );
   }
 
+  /// que solo si es un usuario valido
+  @UseGuards(AuthGuard)
   @Get()
   findAllProducts(@Query() paginationDto: PaginationDto) {
     return this.client.send({ cmd: 'find_all_product' }, paginationDto);
@@ -42,10 +46,7 @@ export class ProductsController {
   async findOneProduct(@Param('id') productId: string) {
     try {
       const product = await firstValueFrom(
-        this.client.send(
-          { cmd: 'find_one_product' },
-          { id: productId },
-        ),
+        this.client.send({ cmd: 'find_one_product' }, { id: productId }),
       );
       return product;
     } catch (error) {

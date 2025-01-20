@@ -1,9 +1,21 @@
-import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'config';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { catchError } from 'rxjs';
+import { AuthGuard } from './guards/auth.guard';
+import { User } from './decorators/user.decorator';
+import { CurrentUser } from './interfaces/current-user.interface';
+import { Token } from './decorators/token.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -12,22 +24,29 @@ export class AuthController {
   @Post('register')
   registerUser(@Body() registerUserDto: RegisterUserDto) {
     /// Capturar error con el pipe
-    //
     return this.client.send('auth.register.user', registerUserDto).pipe(
       catchError((error) => {
-        throw new RpcException(error); 
-      })
+        throw new RpcException(error);
+      }),
     );
   }
 
   @Post('login')
-  /// Definir como recibe la info
   loginUser(@Body() loginUserDto: LoginUserDto) {
-    return this.client.send('auth.login.user', loginUserDto);
+    /// Capturar error con el pipe
+    return this.client.send('auth.login.user', loginUserDto).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
   }
 
+  @UseGuards(AuthGuard)
   @Get('verify')
-  verifyUser() {
-    return this.client.send('auth.verify.user', {});
+  /// Usar el decorador
+  verifyUser(@User() user: CurrentUser, @Token() token: string) {
+
+    return { user, token };
+    //return this.client.send('auth.verify.user', {});
   }
 }
